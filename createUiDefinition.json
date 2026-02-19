@@ -1,0 +1,137 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": true,
+      "basics": {
+        "description": "# Sample deployment\nDeploy a Consumption Logic App with an optional Key Vault.",
+        "location": {
+          "label": "Region",
+          "resourceTypes": [
+            "Microsoft.Logic/workflows",
+            "Microsoft.KeyVault/vaults"
+          ]
+        }
+      }
+    },
+    "basics": [],
+    "steps": [
+      {
+        "name": "logicApp",
+        "label": "Logic App",
+        "elements": [
+          {
+            "name": "logicAppName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Logic App Name",
+            "placeholder": "my-logic-app",
+            "toolTip": "Name of the Consumption Logic App to deploy.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[a-zA-Z0-9][a-zA-Z0-9-_.()]{0,78}[a-zA-Z0-9_()]$",
+                  "message": "Must be 1-80 characters. Alphanumeric, hyphens, underscores, periods, and parentheses are allowed."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "logicAppState",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Initial State",
+            "defaultValue": "Enabled",
+            "toolTip": "Choose whether the Logic App is enabled or disabled after deployment.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "Enabled", "value": "Enabled" },
+                { "label": "Disabled", "value": "Disabled" }
+              ],
+              "required": true
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "keyVault",
+        "label": "Key Vault",
+        "elements": [
+          {
+            "name": "createNewVault",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Key Vault Option",
+            "defaultValue": "Use existing Key Vault",
+            "toolTip": "Choose whether to create a new Key Vault or use an existing one.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "Create new Key Vault", "value": "new" },
+                { "label": "Use existing Key Vault", "value": "existing" }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "newVaultName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "New Key Vault Name",
+            "placeholder": "my-keyvault",
+            "toolTip": "Globally unique name for the new Key Vault (3-24 characters, alphanumeric and hyphens only).",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9]$",
+                  "message": "Must be 3-24 characters, start with a letter, end with a letter or digit, and contain only alphanumeric characters and hyphens."
+                }
+              ]
+            },
+            "visible": "[equals(steps('keyVault').createNewVault, 'new')]"
+          },
+          {
+            "name": "newVaultSku",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Key Vault SKU",
+            "defaultValue": "Standard",
+            "toolTip": "Pricing tier for the new Key Vault.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "Standard", "value": "standard" },
+                { "label": "Premium", "value": "premium" }
+              ],
+              "required": true
+            },
+            "visible": "[equals(steps('keyVault').createNewVault, 'new')]"
+          },
+          {
+            "name": "existingVaultSelector",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "Select Existing Key Vault",
+            "toolTip": "Pick an existing Key Vault from your subscription.",
+            "resourceType": "Microsoft.KeyVault/vaults",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "onBasics"
+              }
+            },
+            "visible": "[equals(steps('keyVault').createNewVault, 'existing')]"
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "location": "[location()]",
+      "logicAppName": "[steps('logicApp').logicAppName]",
+      "logicAppState": "[steps('logicApp').logicAppState]",
+      "createNewKeyVault": "[equals(steps('keyVault').createNewVault, 'new')]",
+      "newKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultName, '')]",
+      "newKeyVaultSku": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultSku, 'standard')]",
+      "existingKeyVaultId": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.id, '')]"
+    }
+  }
+}

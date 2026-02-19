@@ -1,0 +1,185 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "logicAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Consumption Logic App."
+      }
+    },
+    "logicAppState": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Initial state of the Logic App."
+      }
+    },
+    "createNewKeyVault": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "If true, deploy a new Key Vault. If false, use an existing one."
+      }
+    },
+    "newKeyVaultName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the new Key Vault (required when createNewKeyVault is true)."
+      }
+    },
+    "newKeyVaultSku": {
+      "type": "string",
+      "defaultValue": "standard",
+      "allowedValues": [
+        "standard",
+        "premium"
+      ],
+      "metadata": {
+        "description": "SKU for the new Key Vault."
+      }
+    },
+    "existingKeyVaultId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Full resource ID of an existing Key Vault (required when createNewKeyVault is false)."
+      }
+    },
+    "secretName": {
+      "type": "string",
+      "defaultValue": "my-secret",
+      "metadata": {
+        "description": "Name of the secret to create in the Key Vault."
+      }
+    },
+    "secretValue": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Value of the secret. Left empty by default."
+      }
+    }
+  },
+  "variables": {
+    "existingVaultSubscription": "[if(parameters('createNewKeyVault'), subscription().subscriptionId, split(parameters('existingKeyVaultId'), '/')[2])]",
+    "existingVaultResourceGroup": "[if(parameters('createNewKeyVault'), resourceGroup().name, split(parameters('existingKeyVaultId'), '/')[4])]",
+    "existingVaultName": "[if(parameters('createNewKeyVault'), 'none', last(split(parameters('existingKeyVaultId'), '/')))]",
+    "effectiveVaultName": "[if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), variables('existingVaultName'))]"
+  },
+  "resources": [
+    {
+      "comments": "---- Consumption Logic App ----",
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {},
+          "actions": {},
+          "outputs": {}
+        },
+        "parameters": {}
+      }
+    },
+    {
+      "comments": "---- New Key Vault (deployed only when createNewKeyVault is true) ----",
+      "condition": "[parameters('createNewKeyVault')]",
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "[parameters('newKeyVaultSku')]"
+        },
+        "tenantId": "[subscription().tenantId]",
+        "enabledForDeployment": false,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90,
+        "enableRbacAuthorization": true,
+        "accessPolicies": []
+      }
+    },
+    {
+      "comments": "---- Secret in the NEW Key Vault ----",
+      "condition": "[parameters('createNewKeyVault')]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder'), parameters('secretName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder'))]"
+      ],
+      "properties": {
+        "value": "[parameters('secretValue')]",
+        "contentType": "text/plain",
+        "attributes": {
+          "enabled": true
+        }
+      }
+    },
+    {
+      "comments": "---- Secret in an EXISTING Key Vault (nested deployment scoped to the vault's resource group) ----",
+      "condition": "[not(parameters('createNewKeyVault'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "addSecretToExistingVault",
+      "subscriptionId": "[variables('existingVaultSubscription')]",
+      "resourceGroup": "[variables('existingVaultResourceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', variables('existingVaultName'), parameters('secretName'))]",
+              "properties": {
+                "value": "[parameters('secretValue')]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[variables('effectiveVaultName')]"
+    },
+    "secretUri": {
+      "type": "string",
+      "value": "[if(parameters('createNewKeyVault'), reference(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('newKeyVaultName'), parameters('secretName')), '2023-07-01').secretUri, 'See nested deployment output')]"
+    }
+  }
+}

@@ -61,7 +61,7 @@
             "name": "logicAppState",
             "type": "Microsoft.Common.DropDown",
             "label": "Initial State",
-            "defaultValue": "Enabled",
+            "defaultValue": "Disabled",
             "toolTip": "Choose whether the Logic App is enabled or disabled after deployment.",
             "constraints": {
               "allowedValues": [

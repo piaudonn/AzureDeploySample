@@ -103,7 +103,14 @@
       "kind": "V1",
       "properties": {
         "displayName": "SMI-KeyVault",
-        "parameterValueType": "Alternative",
+        "parameterValueSet": {
+            "name": "oauthMI",
+            "values": {
+                "vaultName": {
+                    "value": "[variables('effectiveVaultName')]"
+                }
+            }
+        },
         "api": {
             "name": "[variables('effectiveVaultName')]",
             "displayName": "Azure Key Vault",

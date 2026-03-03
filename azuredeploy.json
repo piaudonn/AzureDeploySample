@@ -94,7 +94,7 @@
             "name": "[variables('effectiveVaultName')]",
             "displayName": "Azure Key Vault",
             "description": "Azure Key Vault is a service to securely store and access secrets.",
-            "id": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Web/locations/', parameters('location') ,'/managedApis/', parameters('connections_keyvault_name'))]",
+            "id": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Web/locations/', parameters('location') ,'/managedApis/', variables('effectiveVaultName'))]",
             "type": "Microsoft.Web/locations/managedApis"
         },
         "testLinks": []

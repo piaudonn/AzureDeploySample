@@ -78,6 +78,13 @@
       "metadata": {
         "description": "URL of the Service Bus queue."
       }
+    },
+    "grantServiceBusKeyPermissions": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "If true, grant the Logic App managed identity the Key Vault Secrets User role on the effective Key Vault."
+      }
     }
   },
   "variables": {
@@ -299,6 +306,55 @@
                 "attributes": {
                   "enabled": true
                 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "comments": "---- Role Assignment: Key Vault Secrets User on NEW Key Vault for Logic App Managed Identity ----",
+      "condition": "[and(parameters('grantServiceBusKeyPermissions'), parameters('createNewKeyVault'))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder')), parameters('logicAppName'), '4633458b-17de-408a-b874-0445c86b69e6')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', if(parameters('createNewKeyVault'), parameters('newKeyVaultName'), 'placeholder'))]",
+        "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "comments": "---- Role Assignment: Key Vault Secrets User on EXISTING Key Vault for Logic App Managed Identity ----",
+      "condition": "[and(parameters('grantServiceBusKeyPermissions'), not(parameters('createNewKeyVault')))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "addRoleAssignmentToExistingVault",
+      "subscriptionId": "[variables('existingVaultSubscription')]",
+      "resourceGroup": "[variables('existingVaultResourceGroup')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('existingVaultName'))]",
+              "name": "[guid(parameters('existingKeyVaultId'), parameters('logicAppName'), '4633458b-17de-408a-b874-0445c86b69e6')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+                "principalId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
               }
             }
           ]

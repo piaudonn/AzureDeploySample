@@ -31,6 +31,9 @@
     },
     "serviceBusQueueUrl": {
       "value": ""
+    },
+    "grantServiceBusKeyPermissions":{
+      "value": false
     }
   }
 }

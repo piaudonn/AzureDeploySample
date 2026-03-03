@@ -138,6 +138,16 @@
               }
             },
             "visible": "[equals(steps('keyVault').createNewVault, 'existing')]"
+          },
+          {
+            "name": "grantServiceBusKeyPermissions",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Grant permissions on the 'ServiceBus' secret in the Key Vault",
+            "toolTip": "If checked, the deployment will grant access permissions on the secret named 'ServiceBus' within the effective Key Vault. The deployment might fail if you do not have permission of the specified secret.",
+            "constraints": {
+              "required": false
+            },
+            "visible": true
           }
         ]
       }
@@ -151,7 +161,8 @@
       "newKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultName, '')]",
       "newKeyVaultSku": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultSku, 'standard')]",
       "existingKeyVaultId": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.id, '')]",
-      "existingKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.name, '')]"
+      "existingKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.name, '')]",
+      "grantServiceBusKeyPermissions": "[steps('keyVault').grantServiceBusKeyPermissions]"
     }
   }
 }

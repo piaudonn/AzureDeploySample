@@ -33,7 +33,7 @@ The Key Vault contains a shared access signature (aka SAS), not the Service Bus 
 The Key Vault call and the Graph API call both use the system managed identity associated with the Logic App. You don't need to manage secrets for this but you need to grant permissions to the identity to:
 1. Query the Key Vault (this is done by a deployement task but can also be done direcly on the Key Vault in Azure).
 2. Query the Graph API 
-`https://graph.microsoft.com/beta/deviceManagement` endpoint. API permissions cannot be set in a deployement task and there is no graphical interface to set those permissions in the Entra ID poral. For this operation, you can use PowerShell like this sample: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
+`https://graph.microsoft.com/beta/deviceManagement` endpoint. API permissions cannot be set in a deployment task and there is no graphical interface to set those permissions in the Entra ID poral. For this operation, you can use PowerShell like this sample: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
 
 
 
@@ -56,4 +56,13 @@ Here you can either pick an existing Key Vault:
 
  Or chose to create a new one:
 
- ![Deployement STEP 3-1](images/ARMDeployement-3-2.png)
+![Deployement STEP 3-1](images/ARMDeployement-3-2.png)
+
+If you have permission to set role on the key vault, you can check the checkbox. You would need to be an owner or have the User Access Administrator role on the key vault of the existing keyvault.
+
+
+## Post Deployment
+
+You will need to grant permission to the Graph API programatically for example using this script: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
+
+It is recommended to enable [Defender for Keyvault](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-key-vault-introduction) on your keyvault to detect potential abuse and gain visibility on access and security recommendations. 

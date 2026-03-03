@@ -4,9 +4,9 @@ When a Logic App connects to backend services such as Microsoft Graph or Service
 
 Ideally, we want to use managed identities to avoid having to manage secrets or other hardcoded credentials. However, in certain cases we need to consider the following limitations:
 - Managed identities cannot cross tenant.
-- The Service Bus logic app connector needs to secret key of the service to connect. Ideally, we could use a shared access signatures (SAS) which doesn't expose the key and is limited in time. 
+- The Service Bus logic app connector needs the secret key of the service to connect. Ideally, we could use a shared access signature (SAS) which doesn't expose the key and is limited in time. 
 
-The consequence of this limitation will sometimes lead to the follow desgin decisions:
+The consequence of this limitation will sometimes lead to the following design decisions:
 - Not using the built-in Service Bus logic app connector. The HTTP connector will be used instead and a SAS signature will be used as authentication material. 
 - It also means the trigger cannot be the Service Bus logic app connector trigger. Instead, a recurrence trigger will be used followed by an HTTP call to mimic the behavior of the logic app trigger.
 - The SAS itself will not be hardcoded in the Logic App but instead stored in a secret in a KeyVault. The Logic App system managed identity will be granted access to this secret.
@@ -31,9 +31,9 @@ It doesn't use the built-in Service Bus connectors for the same reason. Instead,
 The Key Vault contains a shared access signature (aka SAS), not the Service Bus secret key. You will need to create this signature and pick the policy and expiration according to your preferences and requirements. If you need an example of how to generate a SAS from a secret key, you can use this sample tool: [Generate-SAS-ServiceBus.ps1](tools/Generate-SAS-ServiceBus.ps1).
 
 The Key Vault call and the Graph API call both use the system managed identity associated with the Logic App. You don't need to manage secrets for this but you need to grant permissions to the identity to:
-1. Query the Key Vault (this is done by a deployement task but can also be done direcly on the Key Vault in Azure).
+1. Query the Key Vault (this is done by a deployment task but can also be done directly on the Key Vault in Azure).
 2. Query the Graph API 
-`https://graph.microsoft.com/beta/deviceManagement` endpoint. API permissions cannot be set in a deployment task and there is no graphical interface to set those permissions in the Entra ID poral. For this operation, you can use PowerShell like this sample: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
+`https://graph.microsoft.com/beta/deviceManagement` endpoint. API permissions cannot be set in a deployment task and there is no graphical interface to set those permissions in the Entra ID portal. For this operation, you can use PowerShell like this sample: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
 
 
 
@@ -46,25 +46,25 @@ https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.github
 
 This will look like these steps:
 
-![Deployement STEP 1](images/ARMDeployement-1.png)
+![Deployment STEP 1](images/ARMDeployement-1.png)
 
-![Deployement STEP 2](images/ARMDeployement-2.png)
+![Deployment STEP 2](images/ARMDeployement-2.png)
 
 Here you can either pick an existing Key Vault:
 
-![Deployement STEP 3-1](images/ARMDeployement-3-1.png)
+![Deployment STEP 3-1](images/ARMDeployement-3-1.png)
 
- Or chose to create a new one:
+ Or choose to create a new one:
 
-![Deployement STEP 3-1](images/ARMDeployement-3-2.png)
+![Deployment STEP 3-2](images/ARMDeployement-3-2.png)
 
-If you have permission to set role on the key vault, you can check the checkbox. You would need to be an owner or have the User Access Administrator role on the key vault of the existing keyvault.
+If you have permission to set roles on the key vault, you can check the checkbox. You would need to be an owner or have the User Access Administrator role on the existing key vault.
 
 
 ## Post Deployment
 
-By default, the Logic App state is set to `disabled`. This is to avoid having the logic app runs before you set the API permissions. Once you have granted the permissions, you can enable it from the portal or programatically. 
+By default, the Logic App state is set to `disabled`. This is to avoid having the logic app run before you set the API permissions. Once you have granted the permissions, you can enable it from the portal or programmatically. 
 
-You will need to grant permission to the Graph API programatically for example using this script: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
+You will need to grant permission to the Graph API programmatically, for example using this script: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
 
-It is recommended to enable [Defender for Keyvault](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-key-vault-introduction) on your keyvault to detect potential abuse and gain visibility on access and security recommendations. 
+It is recommended to enable [Defender for Keyvault](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-key-vault-introduction) on your keyvault to detect potential abuse and gain visibility on access and security recommendations. This can also be automated. 

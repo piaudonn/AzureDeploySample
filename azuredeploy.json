@@ -222,7 +222,7 @@
             "$connections": {
                 "value": {
                     "keyvault": {
-                        "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', variables('effectiveVaultName'))]",
+                        "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/keyvault')]",
                         "connectionId": "[resourceId('Microsoft.Web/connections', variables('effectiveVaultName'))]",
                         "connectionName": "keyvault",
                         "connectionProperties": {

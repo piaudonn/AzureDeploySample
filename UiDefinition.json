@@ -16,7 +16,25 @@
         }
       }
     },
-    "basics": [],
+    "basics": [
+      {
+        "name": "serviceBusQueueUrl",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Service Bus Queue URL",
+        "placeholder": "https://<namespace>.servicebus.windows.net/<queue-name>",
+        "toolTip": "The full URL of the Service Bus queue (e.g. https://my-namespace.servicebus.windows.net/my-queue).",
+        "constraints": {
+          "required": true,
+          "validations": [
+            {
+              "regex": "^https://[a-zA-Z0-9-]+\\.servicebus\\.windows\\.net/[a-zA-Z0-9-_./]+$",
+              "message": "Must be a valid Service Bus queue URL (https://<namespace>.servicebus.windows.net/<queue-name>)."
+            }
+          ]
+        },
+        "visible": true
+      }
+    ],
     "steps": [
       {
         "name": "logicApp",
@@ -126,12 +144,14 @@
     ],
     "outputs": {
       "location": "[location()]",
+      "serviceBusQueueUrl": "[basics('serviceBusQueueUrl')]",
       "logicAppName": "[steps('logicApp').logicAppName]",
       "logicAppState": "[steps('logicApp').logicAppState]",
       "createNewKeyVault": "[equals(steps('keyVault').createNewVault, 'new')]",
       "newKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultName, '')]",
       "newKeyVaultSku": "[if(equals(steps('keyVault').createNewVault, 'new'), steps('keyVault').newVaultSku, 'standard')]",
-      "existingKeyVaultId": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.id, '')]"
+      "existingKeyVaultId": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.id, '')]",
+      "existingKeyVaultName": "[if(equals(steps('keyVault').createNewVault, 'existing'), steps('keyVault').existingVaultSelector.name, '')]"
     }
   }
 }

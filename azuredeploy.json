@@ -60,7 +60,7 @@
     },
     "secretName": {
       "type": "string",
-      "defaultValue": "my-secret",
+      "defaultValue": "BusSignature",
       "metadata": {
         "description": "Name of the secret to create in the Key Vault."
       }
@@ -81,21 +81,152 @@
   },
   "resources": [
     {
+      "comments": "---- Connection Object for the System Managed Identity to connect to the Key Vault ----",
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('effectiveVaultName')]",
+      "location": "[parameters('location')]",
+      "kind": "V1",
+      "properties": {
+        "displayName": "SMI-KeyVault",
+        "parameterValueType": "Alternative",
+        "api": {
+            "name": "[variables('effectiveVaultName')]",
+            "displayName": "Azure Key Vault",
+            "description": "Azure Key Vault is a service to securely store and access secrets.",
+            "id": "[concat('/subscriptions/',subscription().subscriptionId,'/providers/Microsoft.Web/locations/', parameters('location') ,'/managedApis/', parameters('connections_keyvault_name'))]",
+            "type": "Microsoft.Web/locations/managedApis"
+        },
+        "testLinks": []
+      }
+    },
+    {
       "comments": "---- Consumption Logic App ----",
       "type": "Microsoft.Logic/workflows",
       "apiVersion": "2019-05-01",
       "name": "[parameters('logicAppName')]",
       "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections', variables('effectiveVaultName'))]"
+      ],
+      "identity": {
+                "type": "SystemAssigned"
+      },
       "properties": {
         "state": "[parameters('logicAppState')]",
         "definition": {
-          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-          "contentVersion": "1.0.0.0",
-          "triggers": {},
-          "actions": {},
-          "outputs": {}
+            "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+            "contentVersion": "1.0.0.0",
+            "parameters": {
+                "ServiceBusName": {
+                    "defaultValue": "[first(split(split(parameters('serviceBusQueueUrl'), '/')[2], '.'))]",
+                    "type": "String"
+                },
+                "ServiceBusQueueName": {
+                    "defaultValue": "[last(split(parameters('serviceBusQueueUrl'), '/'))]",
+                    "type": "String"
+                },
+                "$connections": {
+                    "defaultValue": {},
+                    "type": "Object"
+                }
+            },
+            "triggers": {
+                "Every_5_minutes": {
+                    "recurrence": {
+                        "interval": 5,
+                        "frequency": "Minute"
+                    },
+                    "evaluatedRecurrence": {
+                        "interval": 5,
+                        "frequency": "Minute"
+                    },
+                    "type": "Recurrence"
+                }
+            },
+            "actions": {
+                "HTTP_call_to_a_service_bus_with_SAS": {
+                    "runAfter": {
+                        "Get_SAS": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http",
+                    "inputs": {
+                        "uri": "https://@{parameters('ServiceBusName')}.servicebus.windows.net:443/@{parameters('ServiceBusQueueName')}/messages/head",
+                        "method": "POST",
+                        "authentication": {
+                            "type": "Raw",
+                            "value": "SharedAccessSignature @{body('Get_SAS')?['value']}"
+                        }
+                    },
+                    "runtimeConfiguration": {
+                        "contentTransfer": {
+                            "transferMode": "Chunked"
+                        }
+                    }
+                },
+                "Get_SAS": {
+                    "runAfter": {},
+                    "type": "ApiConnection",
+                    "inputs": {
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['keyvault']['connectionId']"
+                            }
+                        },
+                        "method": "get",
+                        "path": "/secrets/@{encodeURIComponent('BusSignature')}/value"
+                    },
+                    "runtimeConfiguration": {
+                        "secureData": {
+                            "properties": [
+                                "inputs",
+                                "outputs"
+                            ]
+                        }
+                    }
+                },
+                "HTTP_call_to_the_Graph_API_with_Managed_Identity": {
+                    "runAfter": {
+                        "HTTP_call_to_a_service_bus_with_SAS": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Http",
+                    "inputs": {
+                        "uri": "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeviceIdentities",
+                        "method": "GET",
+                        "authentication": {
+                            "type": "ManagedServiceIdentity",
+                            "audience": "https://graph.microsoft.com/"
+                        }
+                    },
+                    "runtimeConfiguration": {
+                        "contentTransfer": {
+                            "transferMode": "Chunked"
+                        }
+                    }
+                }
+            },
+            "outputs": {}
         },
-        "parameters": {}
+        "parameters": {
+            "$connections": {
+                "value": {
+                    "keyvault": {
+                        "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', variables('effectiveVaultName'))]",
+                        "connectionId": "[resourceId('Microsoft.Web/connections', variables('effectiveVaultName'))]",
+                        "connectionName": "keyvault",
+                        "connectionProperties": {
+                            "authentication": {
+                                "type": "ManagedServiceIdentity"
+                            }
+                        }
+                    }
+                }
+            }
+        }
       }
     },
     {
@@ -136,7 +267,7 @@
           "enabled": true
         }
       }
-    },
+    },    
     {
       "comments": "---- Secret in an EXISTING Key Vault (nested deployment scoped to the vault's resource group) ----",
       "condition": "[not(parameters('createNewKeyVault'))]",

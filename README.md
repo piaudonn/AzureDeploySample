@@ -1,4 +1,15 @@
-## 
+### Scenario
+
+When a Logic App connects to backend services such as Microsoft Graph or Service Bus, careful decisions are required regarding the identities used and how credentials are securely managed to access those services.
+
+Ideally, we want to use managed identities to avoid having to manage secrets or other hardcoded credentials. However, in certain cases we need to consider the following limitations:
+- Managed identities cannot cross tenant.
+- The Service Bus logic app connector needs to secret key of the service to connect. Ideally, we could use a shared access signatures (SAS) which doesn't expose the key and is limited in time. 
+
+The consequence of this limitation will sometimes lead to the follow desgin decisions:
+- Not using the built-in Service Bus logic app connector. The HTTP connector will be used instead and a SAS signature will be used as authentication material. 
+- It also means the trigger cannot be the Service Bus logic app connector trigger. Instead, a recurrence trigger will be used followed by an HTTP call to mimic the behavior of the logic app trigger.
+- The SAS itself will not be hardcoded in the Logic App but instead stored in a secret in a KeyVault. The Logic App system managed identity will be granted access to this secret.
 
 ### Sample logic app
 

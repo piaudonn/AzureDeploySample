@@ -20,10 +20,16 @@
     "existingKeyVaultId": {
       "value": ""
     },
+    "existingKeyVaultName": {
+      "value": ""
+    },
     "secretName": {
-      "value": "my-secret"
+      "value": "BusSignature"
     },
     "secretValue": {
+      "value": ""
+    },
+    "serviceBusQueueUrl": {
       "value": ""
     }
   }

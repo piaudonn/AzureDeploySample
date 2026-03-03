@@ -63,6 +63,8 @@ If you have permission to set role on the key vault, you can check the checkbox.
 
 ## Post Deployment
 
+By default, the Logic App state is set to `disabled`. This is to avoid having the logic app runs before you set the API permissions. Once you have granted the permissions, you can enable it from the portal or programatically. 
+
 You will need to grant permission to the Graph API programatically for example using this script: [Set-API-Permissions.ps1](tools/Set-API-Permissions.ps1).
 
 It is recommended to enable [Defender for Keyvault](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-key-vault-introduction) on your keyvault to detect potential abuse and gain visibility on access and security recommendations. 
